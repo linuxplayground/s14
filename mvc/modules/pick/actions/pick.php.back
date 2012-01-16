@@ -1,0 +1,60 @@
+<?php
+Log::getInstance()->write(__FILE__." loaded", "debug");
+require_once ("modules/common/model.class.php");
+require_once ("modules/pick/functions/pearDate.class.php");
+require_once( "modules/common/xmlwriter.class.php" );
+
+class PickAction extends Model {
+	public function getPicksForUser(Message $oMsg ) {
+		if( $this->validateUser($oMsg) ) {
+			$dm = new DateHandler( );
+			$sql = sprintf("
+				SELECT g.*, p.p_margin_id as pickedMargin
+				FROM games_list g
+				left outer join pick as p
+				on g.id = p.p_game_id and p.p_user_id = %d
+				where g.gdate between '%s' AND '%s'",
+				(int)$_SESSION['token'],
+				$dm->getNextFridayMysql(), $dm->getNextSundayMysql() );
+			$rs = $oMsg->conn->query($sql);
+			if (PEAR::isError($rs) ) {
+				Log::getInstance()->write("Could not query database for picks. ".$rs->getMessage(), "debug");
+				return $this->insert_error($oMsg, "Could not query database for picks. ".$rs->getMessage(), "error");
+			}
+			$xml = new XMLWriterObj( );
+			$xml->push("form");
+			$xml->element("action", "index.php?action=processPickSelection&module=pick");
+			$xml->element("method","POST");
+			$xml->element("message", "Please select your picks for next week.");
+			$c = 1;
+			while ($row[$c] = $rs->fetchRow(MDB2_FETCHMODE_ASSOC) ) {
+				$xml->push("game");
+					$xml->element('hometeam', $row[$c]['home']);
+					$xml->element('awayteam', $row[$c]['away']);
+					$xml->element('date', substr($row[$c]['gdate'],0,10));
+					$xml->element('picked', $row[$c]['pickedMargin']);
+					$xml->element('gameId', $row[$c]['id']);
+				$xml->pop();
+				$c++;
+			}
+			//Get margin names for the headings.
+			$sql = sprintf("select m.m_name, m.m_id from margin m, matchtype_margin mtm where m.m_id = mtm.m_id and mtm.mt_id = %d order by m.m_l_value DESC",(int)$row[1]['mtid']);
+			$rsM = $oMsg->conn->query($sql);
+			if(PEAR::isError($rsM)){
+				Log::getInstance()->write("Could not query database for margins. ".$rs->getMessage(),"debug");
+				return $this->insert_error($oMsg, "Could not query database for margins. ".$rs->getMessage(),"error");
+			}
+			while($rowM = $rsM->fetchRow(MDB2_FETCHMODE_ASSOC) ) {
+				$xml->push("margin");
+					$xml->element("name", $rowM['m_name']);
+					$xml->element("id",$rowM['m_id']);
+				$xml->pop();
+			}
+			$xml->pop();
+			
+			$oMsg->data['xml'] = $xml->getXml();
+			$oMsg->result = "listPicks";
+		}
+	}
+}
+?>

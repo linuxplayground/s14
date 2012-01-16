@@ -1,0 +1,128 @@
+<?php
+/*
+	All action methods for Authorisation in this model.
+	
+*/
+require_once ("modules/common/model.class.php");
+Log::getInstance()->write (__FILE__." loaded", "debug");
+
+class AuthorisationAction extends Model {
+
+	public $action;
+	
+	public function initialiseVerification( $name) {
+		//Sessions expire after 5 minutes.
+		session_cache_expire(5);
+		session_start();
+		switch ($name) {
+			case "login":
+				$this->action = "login";
+				break;
+			case "logout":
+				$this->action = "logout";
+				break;
+			default:
+				$this->action = "verify";
+				break;
+		}
+	}
+	
+	public function execute( $oMsg ) {
+		$method = $this->action;
+		return $this->$method( $oMsg );
+	}
+	
+	private function setSession( $key, $value ) {
+		$_SESSION[$key] = $value;
+	}
+	
+	private function getSession ($key) {
+		return $_SESSION[$key];
+	}
+	
+	public function verify( $oMsg ) {
+		if( isset( $_SESSION['token'] ) ) {
+			/*
+			 * Could look at implementing here some kind of timeout on sessions.
+			 */
+		} else {
+			$oMsg->message = "Please log in.";
+			$oMsg->action = "logInForm";
+			$oMsg->module = "auth";
+		}
+	}
+	
+	public function logout( $oMsg ) {
+		$oMsg->message = "Logged out";
+		$_SESSION = array();
+		session_destroy();
+		$oMsg->action = "logInForm";
+		$oMsg->module = "auth";
+	}
+
+	public function login( $oMsg ) {
+		
+		if ( isset ($_SESSION['token']) ) {
+			$oMsg->message = "Logged in already.";
+			//$oMsg->action = "default";
+		} else {
+			$sql = sprintf( "SELECT * FROM auth_user WHERE user_name = '%s' AND user_pass = '%s'",
+				$oMsg->request['loginUserName'], $oMsg->request['loginUserPass'] );
+			$rs = $oMsg->conn->query( $sql );
+			if (PEAR::isError ( $rs ) ) {
+				Log::getInstance()->write("Could not perform query on database", "error");
+				$this->insert_error( $oMsg, "Could not perform username and password query on database.<br />".$rs->getMessage()."<br />".$sql."<br/>".mysql_error(), "login_failed" );
+			} else {
+				if ( $rs->numRows( ) > 0 ) {
+					$row = $rs->fetchRow( MDB2_FETCHMODE_ASSOC );
+					$this->setSession( 'token', $row['user_id'] );
+					$this->setSession('userName', $row['user_name']);
+					if(array_key_exists("systemUser", $oMsg->request) ) {
+						$this->setSession('systemUser', 'true');
+					}
+					$oMsg->message = "Welcome Back ".$row['user_first_name'];
+					Log::getInstance()->write($row['user_name']." Logged in succesfully.", "debug");
+				} else {
+					$oMsg->message = "Log in failed.";
+					$oMsg->action = "logInForm";
+					$oMsg->module = "auth";	
+				}
+			}
+		}
+	}
+	
+	public function loginForm ( $oMsg ) {
+		if ( isset ($_SESSION['token']) ) {
+			$oMsg->message = "Logged in already.";
+			$oMsg->result = "user_already_logged_in";
+		} else {
+			require_once ("modules/common/xmlwriter.class.php");
+			$libxml = new XmlWriterObj( );
+			$libxml->push( 'form' );
+				$libxml->element( 'message', $oMsg->message );
+				$libxml->element( 'action', 'index.php?requestFilter=login&action=default' );
+				$libxml->element( 'method', 'POST' );
+				$libxml->element( 'label', 'Log In Form' );
+				$libxml->push( 'input' );
+					$libxml->element( 'type', 'text' );
+					$libxml->element( 'name', 'loginUserName' );
+					$libxml->element( 'label', 'User Name' );
+				$libxml->pop();
+				$libxml->push( 'input' );
+					$libxml->element( 'type', 'password' );
+					$libxml->element( 'name', 'loginUserPass' );
+					$libxml->element( 'label', 'Password' );
+				$libxml->pop();
+				$libxml->push( 'submit' );
+					$libxml->element( 'name', 'loginSubmit' );
+					$libxml->element( 'value', 'Log In' );
+				$libxml->pop();
+			$libxml->pop();
+			
+			$oMsg->data['login']['xml'] = $libxml->getXml();
+			
+			$oMsg->result = "display_login_form";
+		}
+	}
+}
+?>

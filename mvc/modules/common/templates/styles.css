@@ -1,0 +1,91 @@
+h2 {
+	font-family: verdana, arial, sans-serif;
+	font-size: 1.5em;
+	color: #777;
+}
+
+body {
+	font-family: verdana, arial, sans-serif;
+	color: #333;
+}
+
+td {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #333;
+	background: #fff;
+}
+
+th {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #333;
+	background: #eeeeee;
+	font-weight: bold;
+}
+
+a {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #33f;
+	text-decoration: none;
+}
+
+a:hover {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #33f;
+	text-decoration: underline;
+}
+
+td a {
+	font-size: 1em;
+}
+
+td a:hover {
+	font-size: 1em;
+}
+
+.main {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #333;
+}
+
+.footer {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.6em;
+	color: #333;
+}
+
+.errorText {
+	font-family: verdana, arial, sans-serif;
+	font-size: 0.8em;
+	color: #ff0000;
+}
+
+.formHeading {
+	font-family: veranda, arial, sans-serif;
+	font-size: 1em;
+	color: #333;
+}
+
+.message {
+	font-family: veranda, arial, sans-serif;
+	font-size: .8em;
+	color: #070;
+}
+
+.menuSep {
+	width: 75px;
+	text-align: left;
+	margin-left: 0px;
+}
+
+button {
+	background: #ccf;
+}
+
+input {
+	background: #ccf;
+}
